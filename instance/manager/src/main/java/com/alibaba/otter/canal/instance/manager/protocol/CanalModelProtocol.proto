@@ -1,0 +1,30 @@
+syntax = "proto3";      //设置使用proto3，注意要写在第一行
+
+//导入CanalParameterProtocol的定义
+import "com.alibaba.otter.canal.instance.manager.protocol.CanalParameterProtocol.proto";
+
+//设置生成的class所属的JAVA包
+option java_package = "com.alibaba.otter.canal.instance.manager.protocol";
+//设置生成的JAVA的类名
+option java_outer_classname = "CanalModelPacket";
+
+// 这个可以省略，因为本来默认就是SPEED的，也建议采用这种option
+option optimize_for = SPEED;
+
+
+
+enum CanalStatus{
+    START=0;
+    STOP=1;
+}
+
+message Canal{
+    int64 id=1;
+    str name=2;
+    str desc=3;
+    CanalStatus status=4;
+    CanalParameter canalParameter=5;
+    google.protobuf.Any gmtCreate=6;
+    google.protobuf.Any gmtModified=7;
+
+}

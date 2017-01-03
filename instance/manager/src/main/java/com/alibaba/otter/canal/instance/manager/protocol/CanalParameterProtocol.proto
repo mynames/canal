@@ -1,0 +1,140 @@
+syntax = "proto3";      //设置使用proto3，注意要写在第一行
+
+//支持Any类型，下面是any.proto文件在protobuf编译好的文件下的路径
+import "google/protobuf/any.proto";
+
+//设置生成的class所属的JAVA包
+option java_package = "com.alibaba.otter.canal.instance.manager.protocol";
+//设置生成的JAVA的类名
+option java_outer_classname = "CanalParameterPacket";
+
+
+enum RunMode{
+    EMBEDDED=0;     //第一个枚举类型必须tag=0，这样可以使用0作为默认值
+    SERVICE=1;
+}
+
+enum ClusterMode{
+
+    STANDALONE=0;
+    STANDBY=1;
+    ACTIVE=2;
+}
+
+enum MetaMode{
+    MEMORY=0;
+    ZOOKEEPER=1;
+    MIXED=2;
+}
+
+enum StorageMode{
+    MEMORY=0;
+    FILE=1;
+    MIXED=2;
+}
+
+enum BatchMode{
+    ITEMSIZE=0;
+    MEMSIZE=1;
+}
+
+
+enum StorageScavengeMode{
+    ON_FULL=0;
+    ON_ACK=1;
+    ON_SCHEDULE=2;
+    NO_OP=3;
+}
+
+
+enum SourcingType{
+    MYSQL=0;
+    LOCALBINLOG=1;
+    ORACLE=2;
+    GROUP=3;
+}
+
+enum HAMode{
+    HEARTBEAT=0;
+    MEDIA=1;
+}
+
+enum IndexMode{
+    MEMORY=0;
+    ZOOKEEPER=1;
+    MIXED=2;
+    META=3;
+    MEMORY_META_FAILBACK=4;
+}
+
+message CanalParameter{
+    int64 canalId=1;
+    RunMode runMode=2;
+    ClusterMode clusterMode=3;
+    int64 zkClusterId=4;
+    MetaMode metaMode=5;
+    int transactionSize=6;
+    StorageMode storageMode=7;
+    BatchMode batchMode=8;
+    int memoryStorageBufferSize=9;
+    int memoryStorageBufferMemUnit=10;
+    str fileStorageDirectory=11;
+    int fileStorageStoreCount=12;
+    int fileStorageRollverCount=13;
+    int fileStoragePercentThresold=14;
+    StorageScavengeMode storageScavengeMode=15;
+    str scavengeSchdule=16;
+    SourcingType sourcingType=17;
+    str localBinlogDirectory=18;
+    HAMode haMode=19;
+    int port=20;
+    int defaultConnectionTimeoutInSeconds=21;
+    int receiveBufferSize=22;
+    int sendBufferSize=23;
+    bytes connectionCharsetNumber=24;
+    str connectionCharset=25;
+    repeated google.protobuf.Any dbAddresses=26;    //List<InetSocketAddress>  dbAddresses;
+    repeated DataSourcing groupDbAddresses=27;  //List<List<DataSourcing>> groupDbAddresses;
+    str dbUsername=28;
+    str dbPassword=29;
+    repeated str positions=30;
+    str defaultDatabaseName=31;
+    int64 slaveId=32;
+    int fallbackIntervalInSeconds=33;
+    bool detectingEnable=34;
+    bool heartbeatHaEnable=35;
+    str detectingSQL=36;
+    int detectingIntervalInSeconds=37;
+    int detectingTimeoutThresholdInSeconds=38;
+    int detectingRetryTimes=39;
+    str app=40;
+    str group=41;
+    str mediaGroup=42;
+    str metaqStoreUri=43;
+    bool ddlIsolation=44;
+    bool filterTableError=45;
+    str blackFilter=46;
+    google.protobuf.Any masterAddress=47;   //InetSocketAddress        masterAddress;
+    str masterUsername=48;
+    str masterPassword=49;
+    google.protobuf.Any standbyAddress=50;  //private InetSocketAddress        standbyAddress;
+    str standbyUsername=51;
+    str standbyPassword=52;
+    str masterLogfileName=53;
+    int64 masterLogfileOffest=54;
+    int64 masterTimestamp=55;
+    str standbyLogfileName=56;
+    int64 standbyLogfileOffest=57;
+    int64 standbyTimestamp=58;
+
+
+}
+
+message DataSourcingList{
+    repeated DataSourcing dataSourcingList=1;
+}
+
+message DataSourcing{
+    SourcingType type=1;
+    google.protobuf.Any adAddress=2;    //java定义为InetSocketAddress dbAddress;
+}

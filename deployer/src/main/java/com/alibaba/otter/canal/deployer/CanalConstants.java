@@ -37,6 +37,7 @@ public class CanalConstants {
     }
 
     public static String getInstanceManagerAddressKey(String destination) {
+        //这里都会把{0}这种占位符替换成destination的名字。PS：global也可以理解为一种特殊的destination
         return MessageFormat.format(INSTANCE_MANAGER_ADDRESS_TEMPLATE, destination);
     }
 

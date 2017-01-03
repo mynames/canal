@@ -1,21 +1,5 @@
 package com.alibaba.otter.canal.deployer;
 
-import java.util.Map;
-import java.util.Properties;
-
-import org.I0Itec.zkclient.IZkStateListener;
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
-import org.I0Itec.zkclient.exception.ZkNodeExistsException;
-import org.apache.commons.lang.BooleanUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
 import com.alibaba.otter.canal.common.CanalException;
 import com.alibaba.otter.canal.common.utils.AddressUtils;
 import com.alibaba.otter.canal.common.zookeeper.ZkClientx;
@@ -32,7 +16,7 @@ import com.alibaba.otter.canal.deployer.monitor.SpringInstanceConfigMonitor;
 import com.alibaba.otter.canal.instance.core.CanalInstance;
 import com.alibaba.otter.canal.instance.core.CanalInstanceGenerator;
 import com.alibaba.otter.canal.instance.manager.CanalConfigClient;
-import com.alibaba.otter.canal.instance.manager.ManagerCanalInstanceGenerator;
+import com.alibaba.otter.canal.instance.manager.netty.handlers.ManagerCanalInstanceGeneratorHandler;
 import com.alibaba.otter.canal.instance.spring.SpringCanalInstanceGenerator;
 import com.alibaba.otter.canal.server.embedded.CanalServerWithEmbedded;
 import com.alibaba.otter.canal.server.exception.CanalServerException;
@@ -40,6 +24,21 @@ import com.alibaba.otter.canal.server.netty.CanalServerWithNetty;
 import com.google.common.base.Function;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.MigrateMap;
+import org.I0Itec.zkclient.IZkStateListener;
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.I0Itec.zkclient.exception.ZkNodeExistsException;
+import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * canal调度控制器
@@ -54,13 +53,13 @@ public class CanalController {
     private String                                   ip;
     private int                                      port;
     // 默认使用spring的方式载入
-    private Map<String, InstanceConfig>              instanceConfigs;
+    private Map<String, InstanceConfig>              instanceConfigs;       //实例配置，可以选择Spring或者Manager来载入配置
     private InstanceConfig                           globalInstanceConfig;
-    private Map<String, CanalConfigClient>           managerClients;
+    private Map<String, CanalConfigClient>           managerClients;        //可以使用多个manager client
     // 监听instance config的变化
     private boolean                                  autoScan = true;
     private InstanceAction                           defaultAction;
-    private Map<InstanceMode, InstanceConfigMonitor> instanceConfigMonitors;
+    private Map<InstanceMode, InstanceConfigMonitor> instanceConfigMonitors;        //配置文件监听，可以同时监听两种InstanceMode
     private CanalServerWithEmbedded                  embededCanalServer;
     private CanalServerWithNetty                     canalServer;
 
@@ -102,7 +101,7 @@ public class CanalController {
         final String zkServers = getProperty(properties, CanalConstants.CANAL_ZKSERVERS);
         if (StringUtils.isNotEmpty(zkServers)) {
             zkclientx = ZkClientx.getZkClient(zkServers);
-            // 初始化系统目录
+            // 在ZK上，初始化系统目录(永久节点)
             zkclientx.createPersistent(ZookeeperPathUtils.DESTINATION_ROOT_NODE, true);
             zkclientx.createPersistent(ZookeeperPathUtils.CANAL_CLUSTER_ROOT_NODE, true);
         }
@@ -275,6 +274,7 @@ public class CanalController {
             globalConfig.setSpringXml(springXml);
         }
 
+        //通过instanceGenerator中的generate方法来根据一个destination获取相应的配置，然后返回一个CanalInstance
         instanceGenerator = new CanalInstanceGenerator() {
 
             public CanalInstance generate(String destination) {
@@ -283,8 +283,10 @@ public class CanalController {
                     throw new CanalServerException("can't find destination:{}");
                 }
 
+                //这里可以设置采用manager来启动instance
                 if (config.getMode().isManager()) {
-                    ManagerCanalInstanceGenerator instanceGenerator = new ManagerCanalInstanceGenerator();
+                    ManagerCanalInstanceGeneratorHandler instanceGenerator = new ManagerCanalInstanceGeneratorHandler();
+                    //一个manager client可以监控canal
                     instanceGenerator.setCanalConfigClient(managerClients.get(config.getManagerAddress()));
                     return instanceGenerator.generate(destination);
                 } else if (config.getMode().isSpring()) {
