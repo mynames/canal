@@ -1,131 +1,216 @@
 syntax = "proto3";      //设置使用proto3，注意要写在第一行
 
-//支持Any类型，下面是any.proto文件在protobuf编译好的文件下的路径
-import "google/protobuf/any.proto";
+
 
 //设置生成的class所属的JAVA包
 option java_package = "com.alibaba.otter.canal.instance.manager.protocol";
 //设置生成的JAVA的类名
 option java_outer_classname = "CanalParameterPacket";
 
+// 这个可以省略，因为本来默认就是SPEED的，也建议采用这种option
+option optimize_for = SPEED;
+
+
+message CanalParameterMessage{
+    //CanalParameter里面的成员划分成更加细致的消息
+    BasicConfig basicConfig=1;
+    ZKConfig zkConfig=2;
+    StorageConfig storageConfig=3;
+    ReplicationConfig replicationConfig=4;
+    NetConfig netConfig=5;
+    CharsetConfig charsetConfig=6;
+    DBConfig dbConfig=7;
+    BinLogConnectConfig binlogConnectConfig=8;
+    HeartBeatConfig heartBeatConfig=9;
+    TDDLConfig tddlConfig = 10;
+    MediaConfig mediaConfig=11;
+    MetaqConfig metaqConfig=12;
+    DDLSupportConifg ddlSupportConfig=13;
+    CompatibleConfig compatibleConfig=14;
+}
+
+
+
 
 enum RunMode{
-    EMBEDDED=0;     //第一个枚举类型必须tag=0，这样可以使用0作为默认值
-    SERVICE=1;
+    EMBEDDED=0;     //嵌入式
+    SERVICE=1;      //服务式
 }
 
 enum ClusterMode{
 
-    STANDALONE=0;
-    STANDBY=1;
-    ACTIVE=2;
+    STANDALONE=0;   //嵌入式
+    STANDBY=1;      //冷备
+    ACTIVE=2;       //热备
 }
 
 enum MetaMode{
-    MEMORY=0;
-    ZOOKEEPER=1;
-    MIXED=2;
+    MetaMode_MEMORY=0;          //内存存储模式
+    MetaMode_ZOOKEEPER=1;       //ZK存储模式
+    MetaMode_MIXED=2;           //混合模式，内存+文件
 }
 
 enum StorageMode{
-    MEMORY=0;
-    FILE=1;
-    MIXED=2;
+    StorageMode_MEMORY=0;       //内存存储模式
+    StorageMode_FILE=1;         //文件存储模式
+    StorageMode_MIXED=2;        //混合模式，内存+文件
 }
 
 enum BatchMode{
-    ITEMSIZE=0;
-    MEMSIZE=1;
+    ITEMSIZE=0;     //对象数量
+    MEMSIZE=1;      //内存大小
 }
 
 
 enum StorageScavengeMode{
-    ON_FULL=0;
-    ON_ACK=1;
-    ON_SCHEDULE=2;
-    NO_OP=3;
+    ON_FULL=0;      //在存储满的时候触发
+    ON_ACK=1;       //在每次有ack请求时触发
+    ON_SCHEDULE=2;  //定时触发，需要外部控制
+    NO_OP=3;        //不做任何操作，由外部进行清理
 }
 
 
 enum SourcingType{
-    MYSQL=0;
-    LOCALBINLOG=1;
-    ORACLE=2;
-    GROUP=3;
+    MYSQL=0;        //mysql DB
+    LOCALBINLOG=1;  //localBinLog
+    ORACLE=2;       //oracle DB
+    GROUP=3;        //多库合并模式
 }
 
 enum HAMode{
-    HEARTBEAT=0;
-    MEDIA=1;
+    HEARTBEAT=0;        //心跳检测
+    MEDIA=1;            //otter media
 }
+
+
+//enum里面的枚举必须全局唯一，所以这里只能加前缀来避免冲突
 
 enum IndexMode{
-    MEMORY=0;
-    ZOOKEEPER=1;
-    MIXED=2;
-    META=3;
-    MEMORY_META_FAILBACK=4;
+    IndexMode_MEMORY=0;     //内存存储模式
+    IndexMode_ZOOKEEPER=1;  //文件存储模式
+    IndexMode_MIXED=2;      //混合模式，内存+文件
+    IndexMode_META=3;       //基于meta信息
+    IndexMode_MEMORY_META_FAILBACK=4;       //基于内存+meta的failback实现
 }
 
-message CanalParameter{
+
+//message设计上，尽量粒度细一点，这样可以按需发送，减少发送量,而且tag<16的时候，tag编码只占用1字节
+message BasicConfig{
     int64 canalId=1;
-    RunMode runMode=2;
-    ClusterMode clusterMode=3;
-    int64 zkClusterId=4;
-    MetaMode metaMode=5;
-    int transactionSize=6;
-    StorageMode storageMode=7;
-    BatchMode batchMode=8;
-    int memoryStorageBufferSize=9;
-    int memoryStorageBufferMemUnit=10;
-    str fileStorageDirectory=11;
-    int fileStorageStoreCount=12;
-    int fileStorageRollverCount=13;
-    int fileStoragePercentThresold=14;
-    StorageScavengeMode storageScavengeMode=15;
-    str scavengeSchdule=16;
-    SourcingType sourcingType=17;
-    str localBinlogDirectory=18;
-    HAMode haMode=19;
-    int port=20;
-    int defaultConnectionTimeoutInSeconds=21;
-    int receiveBufferSize=22;
-    int sendBufferSize=23;
-    bytes connectionCharsetNumber=24;
-    str connectionCharset=25;
-    repeated google.protobuf.Any dbAddresses=26;    //List<InetSocketAddress>  dbAddresses;
-    repeated DataSourcing groupDbAddresses=27;  //List<List<DataSourcing>> groupDbAddresses;
-    str dbUsername=28;
-    str dbPassword=29;
-    repeated str positions=30;
-    str defaultDatabaseName=31;
-    int64 slaveId=32;
-    int fallbackIntervalInSeconds=33;
-    bool detectingEnable=34;
-    bool heartbeatHaEnable=35;
-    str detectingSQL=36;
-    int detectingIntervalInSeconds=37;
-    int detectingTimeoutThresholdInSeconds=38;
-    int detectingRetryTimes=39;
-    str app=40;
-    str group=41;
-    str mediaGroup=42;
-    str metaqStoreUri=43;
-    bool ddlIsolation=44;
-    bool filterTableError=45;
-    str blackFilter=46;
-    google.protobuf.Any masterAddress=47;   //InetSocketAddress        masterAddress;
-    str masterUsername=48;
-    str masterPassword=49;
-    google.protobuf.Any standbyAddress=50;  //private InetSocketAddress        standbyAddress;
-    str standbyUsername=51;
-    str standbyPassword=52;
-    str masterLogfileName=53;
-    int64 masterLogfileOffest=54;
-    int64 masterTimestamp=55;
-    str standbyLogfileName=56;
-    int64 standbyLogfileOffest=57;
-    int64 standbyTimestamp=58;
+    RunMode runMode=2;                  // 运行模式：嵌入式/服务式
+    ClusterMode clusterMode=3;          // 集群模式：单机/冷备/热备份
+    MetaMode metaMode=4;                // meta机制
+}
+
+message ZKConfig{
+    int64 zkClusterId=1;                    // zk集群id，为管理方便
+    repeated string zkClusters=2;          // zk集群地址
+}
+
+
+message StorageConfig{
+
+    int32 transactionSize=1;                        // 支持处理的transaction事务大小
+    StorageMode storageMode=2;                      // 存储机制
+    BatchMode storageBatchMode=3;                   // 基于大小返回结果
+    int32 memoryStorageBufferSize=4;                // 内存存储的buffer大小
+    int32 memoryStorageBufferMemUnit=5;             // 内存存储的buffer内存占用单位，默认为1kb
+    string fileStorageDirectory=6;                  // 文件存储的目录位置
+    int32 fileStorageStoreCount=7;                  // 每个文件store存储的记录数
+    int32 fileStorageRollverCount=8;                // store文件的个数
+    int32 fileStoragePercentThresold=9;              // 整个store存储占disk硬盘的百分比，超过百分比及时条数还未满也不写入
+    StorageScavengeMode storageScavengeMode=10;       //存储扫描的模式
+    string scavengeSchdule=11;                      // 调度规则
+}
+
+
+message ReplicationConfig{
+    SourcingType sourcingType=1;                    // 数据来源类型
+    string localBinlogDirectory=2;                   // 本地localBinlog目录
+    HAMode haMode=3;                                 // ha机制
+}
+
+
+message NetConfig{
+    int32 port=1;                                       // 服务端口，独立运行时需要配置
+    int32 defaultConnectionTimeoutInSeconds=2;          // sotimeout
+    int32 receiveBufferSize=3;
+    int32 sendBufferSize=4;
+}
+
+
+message CharsetConfig{
+    bytes connectionCharsetNumber=1;
+    string connectionCharset=2;
+}
+
+
+message DBConfig{
+    repeated InetSocketAddressMessage dbAddresses=1;    // 数据库链接信息
+    repeated DataSourcing groupDbAddresses=2;   // 数据库链接信息，包含多组信息
+    string dbUsername=3;                        // 数据库用户
+    string dbPassword=4;                        // 数据库密码
+}
+
+
+message BinLogConnectConfig{
+    IndexMode indexMode=1;
+    repeated string positions=2;                   // 数据库positions信息
+    string defaultDatabaseName=3;               // 默认链接的数据库schmea
+    int64 slaveId=4;                            // 链接到mysql的slaveId
+    int32 fallbackIntervalInSeconds=5;          // 数据库发生切换查找时回退的时间
+}
+
+
+message HeartBeatConfig{
+    bool detectingEnable=1;                         // 是否开启心跳语句
+    bool heartbeatHaEnable=2;                       // 是否开启基于心跳检查的ha功能
+    string detectingSQL=3;                          // 心跳sql
+    int32 detectingIntervalInSeconds=4;             // 检测频率
+    int32 detectingTimeoutThresholdInSeconds=5;     // 心跳超时时间
+    int32 detectingRetryTimes=6;                    // 心跳检查重试次数
+}
+
+message TDDLConfig{
+
+    string app=1;
+    string group=2;
+}
+
+
+message MediaConfig{
+
+    string mediaGroup=1;
+}
+
+message MetaqConfig{
+    string metaqStoreUri=1;
+}
+
+message DDLSupportConifg{
+    bool ddlIsolation=1;                // 是否将ddl单条返回
+    bool filterTableError=2;           // 是否忽略表解析异常
+    string blackFilter=3;               // 匹配黑名单,忽略解析
+}
+
+
+//兼容字段处理
+message CompatibleConfig{
+
+
+    InetSocketAddressMessage masterAddress=1;
+    string masterUsername=2;
+    string masterPassword=3;
+
+    InetSocketAddressMessage standbyAddress=4;
+    string standbyUsername=5;
+    string standbyPassword=6;
+    string masterLogfileName=7;
+    int64 masterLogfileOffest=8;
+    int64 masterTimestamp=9;
+    string standbyLogfileName=10;
+    int64 standbyLogfileOffest=11;
+    int64 standbyTimestamp=12;
 
 
 }
@@ -136,5 +221,12 @@ message DataSourcingList{
 
 message DataSourcing{
     SourcingType type=1;
-    google.protobuf.Any adAddress=2;    //java定义为InetSocketAddress dbAddress;
+    InetSocketAddressMessage adAddress=2;
+}
+
+
+
+message InetSocketAddressMessage{
+    string IPAddress=1;
+    int32 port=2;
 }

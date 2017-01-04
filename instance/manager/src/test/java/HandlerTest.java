@@ -1,14 +1,15 @@
-import com.alibaba.otter.canal.instance.manager.model.Canal;
-import com.alibaba.otter.canal.instance.manager.model.CanalParameter;
-import com.alibaba.otter.canal.instance.manager.netty.handlers.FinalOutboundHandler;
-import com.alibaba.otter.canal.instance.manager.netty.handlers.ManagerCanalInstanceGeneratorHandler;
+import com.alibaba.otter.canal.instance.manager.protocol.CanalModelPacket;
+import com.alibaba.otter.canal.instance.manager.protocol.ProtobufUtils;
 import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
+import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
+import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
+import netty.InboundHandler1;
+import netty.InboundHandler2;
 import org.junit.Test;
-
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Wan Kaiming on 2016/12/30
@@ -17,64 +18,53 @@ import java.util.List;
 public class HandlerTest {
 
     /**
-     * 测试所有的Handler
+     * 测试protbuf的encode效果
+     *
+     * ch1对数据利用protbuf encode来编码，然后发送
+     * ch2拿到数据后进行解码打印
+     *
      */
     @Test
-    public void testMyHandlers(){
+    public void testProtobufDecoder(){
 
 
-        Canal canal = initialDefaultCanalModel();
+        //创建嵌入式Channel用于发送encode之后的数据
+        EmbeddedChannel ch1 = new EmbeddedChannel();
 
+        //InboundHandler1会产生一个protobuf实例
 
-        //创建嵌入式Channel
-        EmbeddedChannel ch = new EmbeddedChannel();
+        ch1.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
+        ch1.pipeline().addLast(new ProtobufVarint32LengthFieldPrepender());
+        ch1.pipeline().addLast(new ProtobufEncoder());
 
-        //以下代码要先定义生成自己的protobuf类  CanalConfigMessage
-        //ch.pipeline().addLast(new ProtobufDecoder(CanalConfigMessage.getDefaultInstance()));
-        ch.pipeline().addLast(new ManagerCanalInstanceGeneratorHandler());
-
-        //PS：注意outbound先注册的，后执行。最后执行的是对消息做编码操作(用protobuf)，发送给server
-        ch.pipeline().addLast(new ProtobufEncoder());
-        ch.pipeline().addLast(new FinalOutboundHandler());
-
-
-        //写入Canal实例
+        ch1.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
+        ch1.pipeline().addLast(new InboundHandler1());      //放在这个位置才有效
 
 
 
 
 
-    }
+
+        ch1.writeInbound("Give a example message to avtive the channel...");
 
 
-    /**
-     *
-     * @return 返回一个用于测试的合法Canal实例
-     */
-    private Canal initialDefaultCanalModel(){
-        Canal defaulCanalModel = new Canal();
-
-        //构造一个默认CanalParameter用于生成Canal实例
-        CanalParameter canalParameter = new CanalParameter();
-        canalParameter.setCanalId(1L);
-        canalParameter.setPort(11111);
-        List<String> zkList = new ArrayList<>();
-        zkList.add("10.45.10.33:2181/kaiming-canal");
-        canalParameter.setZkClusters(zkList);
-        List<InetSocketAddress> dbAddressesList = new ArrayList<>();
-        dbAddressesList.add(new InetSocketAddress("10.45.10.33",3306));
-        canalParameter.setDbAddresses(dbAddressesList);
-        canalParameter.setDbUsername("canal");
-        canalParameter.setDbPassword("canal");
-        canalParameter.setSlaveId(1234L);
-        canalParameter.setIndexMode(CanalParameter.IndexMode.MEMORY);
 
 
-        //初始化defaulCanalModel中的成员变量
-        defaulCanalModel.setCanalParameter(canalParameter);
-        defaulCanalModel.setId(1L);
-        defaulCanalModel.setName("example");
-        return defaulCanalModel;
+        //准备一个需要Decode 的protobuf类的实例用于解码
+        CanalModelPacket.CanalModelMessage canalModelMessage = ProtobufUtils.getDefaultCanalModeMessage();
+
+
+        //创建嵌入式Channel用于接收消息。 PS：必须在创建EmbeddedChannel时加入handler和decoder才有效
+        EmbeddedChannel ch2 = new EmbeddedChannel();
+        //先进行解码
+        ch2.pipeline().addLast(new ProtobufVarint32FrameDecoder());
+        ch2.pipeline().addLast(new ProtobufDecoder(canalModelMessage));
+        ch2.pipeline().addLast(new InboundHandler2());
+
+
 
     }
+
+
+
 }
