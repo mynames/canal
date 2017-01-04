@@ -31,15 +31,18 @@ public class HandlerTest {
         //创建嵌入式Channel用于发送encode之后的数据
         EmbeddedChannel ch1 = new EmbeddedChannel();
 
-        //InboundHandler1会产生一个protobuf实例
 
-        ch1.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
+
+
+
+        ch1.pipeline().addLast(new LoggingHandler(LogLevel.INFO));  //打印Encode后的日志
         ch1.pipeline().addLast(new ProtobufVarint32LengthFieldPrepender());
         ch1.pipeline().addLast(new ProtobufEncoder());
+        ch1.pipeline().addLast(new LoggingHandler(LogLevel.INFO)); //打印Encode前的日志
 
-        ch1.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
-        ch1.pipeline().addLast(new InboundHandler1());      //放在这个位置才有效
 
+
+        ch1.pipeline().addLast(new InboundHandler1());              //InboundHandler1会产生一个protobuf实例
 
 
 
