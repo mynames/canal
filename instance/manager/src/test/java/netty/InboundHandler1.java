@@ -13,7 +13,7 @@ public class InboundHandler1 extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        super.channelRead(ctx, msg);
+
         System.out.println("Reading msg in InboundHandler1");
 
         //读完之后初始化一个protobuf 实例对象交给OutboundHandler
