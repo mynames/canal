@@ -15,12 +15,11 @@ import org.junit.Test;
  * @author Wan Kaiming on 2016/12/30
  * @version 1.0
  */
-public class HandlerTest {
+public class ProtobufDecoderTest {
 
     /**
-     * 测试protbuf的encode效果
      *
-     * ch1对数据利用protbuf encode来编码
+     * 测试protobuf解码CanalModelPacket的能力。
      *
      */
     @Test
@@ -31,17 +30,15 @@ public class HandlerTest {
         EmbeddedChannel ch1 = new EmbeddedChannel();
 
 
-        //准备一个需要Decode 的protobuf类的实例用于解码
-        CanalModelPacket.CanalModelMessage msg = ProtobufUtils.getDefaultCanalModeMessage();
 
 
-        //OutboundHandler子类放前面，放在InboundHandler子类之后的话，根据往回逆序调用的话，一个都OutboundHandler都不会调用的
+        //OutboundHandler子类放前面，放在InboundHandler子类之后的话，根据往回逆序调用的话，一个OutboundHandler都不会调用的
         ch1.pipeline().addLast(new LoggingHandler(LogLevel.INFO));  //log handler1:一开始作为InboundHandler，会使用channelRead方法；之后会作为OutboundHandler再执行一遍，打印encoder之后的消息(write方法)并且flush
         ch1.pipeline().addLast(new ProtobufVarint32LengthFieldPrepender());
         ch1.pipeline().addLast(new ProtobufEncoder());
 
         ch1.pipeline().addLast(new LoggingHandler(LogLevel.INFO));  //log handler2:一开始作为InboundHandler，会使用channelRead方法；之后会作为OutboundHandler再执行一遍，打印encoder之前的消息并且flush
-        ch1.pipeline().addLast(new InboundHandler1());              //InboundHandler1会产生一个protobuf实例,PS：调用InboundHandler之后开始走Outbound的事件流了
+        ch1.pipeline().addLast(new InboundHandler1());              //InboundHandler1会产生一个protobuf定义的canal parameter实例,PS：调用InboundHandler之后开始走Outbound的事件流了
 
         ch1.writeInbound("Give a example message to avtive the channel...");
 
